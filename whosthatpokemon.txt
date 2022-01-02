@@ -1,0 +1,14 @@
+who's that pokemon
+
+setup
+	-convert image
+	-randomize pokemon
+	-display
+game
+	-enter name
+	-guess pokemon
+results
+	-add to score
+	-export high scores as an object
+
+47953f49-4f34-453b-8b1d-725b6e4598f7

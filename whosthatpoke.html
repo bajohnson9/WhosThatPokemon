@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Who's that Pokemon?</title>
+
+</head>
+<body>
+    <h1>WHO'S THAT POKEMON???</h1> 
+    <h2><button onclick="getScores()">Show High Scores</button><button onclick="resetScores()">RESET ALL</button></h2> <!-- show/reset scores -->
+    <h3>Enter your name to try: <input id="nameInput"><button onclick="newPlayer();playGame()">Start!</button></h3> <!-- enter name to start -->
+    <h4><img id="pokeImage" src="" alt="image placeholder"></h4>  <!-- WHOS' THAT POKEMON?????? HMMMMMMMMMMMMM -->
+    <h6><input id="pokeInput"><button onclick="calcPoints()">Guess</button></h6>  <!-- click to make your guess -->
+    
+    
+</body>
+
+<script>
+    const pokeImage = document.getElementById("pokeImage");
+    const nameInput = document.getElementById("nameInput");
+    const pokeInput = document.getElementById("pokeInput");
+    const myHeaders = new Headers();
+    let HSarray = [];
+    
+    let defaultScores = JSON.stringify({"highscores":[{"name": "Brooks", "score": 0}]});
+    
+
+
+    //GET ALL
+    async function getScores(){
+        const httpResponse = await fetch("https://getpantry.cloud/apiv1/pantry/47953f49-4f34-453b-8b1d-725b6e4598f7/basket/highscores")
+        let body = await httpResponse.json()
+        HSarray = body.highscores;
+        for(let i = 0; i < HSarray.length; i++){
+            console.log("Name: " + HSarray[i].name + ", Score: " + HSarray[i].score);
+        }
+        return body;
+    }
+
+    //LOCAL NEW PLAYER
+    async function newPlayer(){
+        const name = nameInput.value;
+        //get json
+        const httpResponse = await fetch("https://getpantry.cloud/apiv1/pantry/47953f49-4f34-453b-8b1d-725b6e4598f7/basket/highscores")
+        let body = await httpResponse.json()
+        HSarray = body.highscores;
+
+        //if name box isn't empty OR taken, add
+        let toadd = true;
+        if(name != ''){
+            for(let i = 0; i < HSarray.length; i++){
+                console.log(`${i} ${HSarray[i].name} ${name}`);
+                if(HSarray[i].name === name) toadd = false;
+            }
+            if(toadd == true) {HSarray.push({"name": name, "score": 0});}
+        } 
+        
+        console.log(HSarray)
+        postScores();
+        
+    }    
+
+    //POST THE CURRENT HS TABLE
+    async function postScores(){
+        //push
+        var requestOptions = {
+            method: 'POST',
+            headers: {'Content-type':"application/json"},
+            body: JSON.stringify({"highscores":HSarray}), 
+            redirect: 'follow'
+        };
+
+        await fetch("https://getpantry.cloud/apiv1/pantry/47953f49-4f34-453b-8b1d-725b6e4598f7/basket/highscores", requestOptions)
+        .then(response => response.text())
+        .then(result => console.log(result))
+        .catch(error => console.log('error', error));
+
+        return HSarray;
+    }
+
+    //DID YOU SCOURE A POINT?
+    async function calcPoints(){
+        const name = nameInput.value;
+        const poke = pokeInput.value;
+        console.log('well it started, VALUE is ' + poke + ", name is " + name)
+        if(poke === "PIKACHU"){
+            console.log('it is in fact pikachu')
+            //MESSY!!!! Iterate through the highscores table, find the right name, add a point TO THE LOCAL ARRAY??? then update scores
+            for(let i = 0; i < HSarray.length; i++){
+                if(HSarray[i].name === name){
+                    HSarray[i].score++;
+                }
+            }
+        }
+        postScores();
+    }
+
+    async function playGame(){
+        const pokemonID = Math.floor(Math.random() * 898) + 1;
+        const httpResponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonID}`);
+        const body = await httpResponse.json()
+        const types = body.types;
+        pokeImage.src = body.sprites.front_shiny;
+    }
+
+    //POST -> RESET SCORES
+    async function resetScores(){
+        //i know you said not to use var but its just begging to be used sometimes
+        var requestOptions = {
+            method: 'POST',
+            headers: {'Content-type':"application/json"},
+            body: defaultScores, 
+            redirect: 'follow'
+        };
+
+        await fetch("https://getpantry.cloud/apiv1/pantry/47953f49-4f34-453b-8b1d-725b6e4598f7/basket/highscores", requestOptions)
+        .then(response => response.text())
+        .then(result => console.log(result))
+        .catch(error => console.log('error', error));
+    }
+
+    getScores();
+</script>
+</html>
