@@ -4,15 +4,50 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="./poke.css" rel = "stylesheet">
     <title>Who's that Pokemon?</title>
+
+    <style>
+        .parent {
+            position: relative;
+            top:0;
+            left:0;
+        }
+        .img {
+            position: relative;
+            top:0;
+            left:0;
+            filter: brightness(3%);
+            height: 300px;
+            width: 400px;
+        }
+
+        .img-child {
+            position:absolute;
+            top:0px;
+            left: 520px;
+            height: 330px;
+            width: 440px;
+            opacity: .33;
+        }
+        
+    </style>
 
 </head>
 <body>
-    <h1>WHO'S THAT POKEMON???</h1> 
-    <h2><button onclick="getScores()">Show High Scores</button><button onclick="resetScores()">RESET ALL</button></h2> <!-- show/reset scores -->
-    <h3>Enter your name to try: <input id="nameInput"><button onclick="newPlayer();playGame()">Start!</button></h3> <!-- enter name to start -->
-    <h4><img id="pokeImage" src="" alt="image placeholder"></h4>  <!-- WHOS' THAT POKEMON?????? HMMMMMMMMMMMMM -->
-    <h6><input id="pokeInput"><button onclick="calcPoints()">Guess</button></h6>  <!-- click to make your guess -->
+
+    <h1>WHO'S THAT POKEMON??? 
+    <h2 class="d-grid"><button onclick="getScores()">Show High Scores</button><button onclick="resetScores()">RESET ALL</button><!--<button onclick="">???</button>--></h2> <!-- show/reset scores -->
+    <div>Enter your name to try: <input id="nameInput"><button onclick="newPlayer();init()">Start!</button></div> <!-- enter name to start -->
+    <div class="parent"><img class="img" id="pokeImage" src="" alt="image placeholder"><img class="img-child" src="wow.png" alt="image placeholder"></div>  <!-- WHOS' THAT POKEMON?????? HMMMMMMMMMMMMM -->
+    <br><br>
+    <div><input id="pokeInput"><button onclick="calcPoints()">Guess</button></div>  <!-- click to make your guess -->
+    </h1>
+    <br><br>
+    <div>
+        High score table:
+        <div class="HStable" id="HStable">high score table goes here</div>
+    </div>
     
     
 </body>
@@ -21,22 +56,42 @@
     const pokeImage = document.getElementById("pokeImage");
     const nameInput = document.getElementById("nameInput");
     const pokeInput = document.getElementById("pokeInput");
+    const HStable = document.getElementById("HStable");
+    let realPoke = '';
+    let pokemonID = '';
+
+
     const myHeaders = new Headers();
     let HSarray = [];
     
     let defaultScores = JSON.stringify({"highscores":[{"name": "Brooks", "score": 0}]});
     
-
+    //RUN UPON BOOT; display + get poke
+    async function init(){
+        pokemonID = Math.floor(Math.random() * 898) + 1;
+        const httpResponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonID}`);
+        const body = await httpResponse.json();
+        pokeImage.src = body.sprites.front_shiny;
+        realPoke = body.name;    
+        getScores();
+    }
 
     //GET ALL
     async function getScores(){
         const httpResponse = await fetch("https://getpantry.cloud/apiv1/pantry/47953f49-4f34-453b-8b1d-725b6e4598f7/basket/highscores")
         let body = await httpResponse.json()
         HSarray = body.highscores;
-        for(let i = 0; i < HSarray.length; i++){
-            console.log("Name: " + HSarray[i].name + ", Score: " + HSarray[i].score);
+        
+        //sort scores
+        HSarray.sort((firstItem, secondItem) => secondItem.score - firstItem.score);
+
+        //add to string
+        let HSstring = '';
+        for(let i = 0; i < HSarray.length || i > 5 ; i++){
+            HSstring += (`<br>${i+1}: Name: ${HSarray[i].name}, Score: ${HSarray[i].score}</br>`);
         }
-        return body;
+        HStable.innerHTML = HSstring;
+        return HSstring;
     }
 
     //LOCAL NEW PLAYER
@@ -59,7 +114,6 @@
         
         console.log(HSarray)
         postScores();
-        
     }    
 
     //POST THE CURRENT HS TABLE
@@ -78,31 +132,35 @@
         .catch(error => console.log('error', error));
 
         return HSarray;
+        getScores();
     }
 
     //DID YOU SCOURE A POINT?
     async function calcPoints(){
+        const httpResponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonID}`);
+        let body = await httpResponse.json()
         const name = nameInput.value;
-        const poke = pokeInput.value;
-        console.log('well it started, VALUE is ' + poke + ", name is " + name)
-        if(poke === "PIKACHU"){
-            console.log('it is in fact pikachu')
+        if(name != ''){
+
+        realPoke = body.name;
+        poke = pokeInput.value;
+        
+        console.log('CHECKING! poke is ' + poke + ", name is " + name + " REAL poke is " + realPoke)
+        if(poke === realPoke){
+            console.log('it is in fact ' + realPoke + " aka " + poke)
             //MESSY!!!! Iterate through the highscores table, find the right name, add a point TO THE LOCAL ARRAY??? then update scores
             for(let i = 0; i < HSarray.length; i++){
                 if(HSarray[i].name === name){
                     HSarray[i].score++;
                 }
             }
-        } else console.log('that aint pikachu');
-        postScores();
-    }
+        } else console.log('that aint pikachu')
+        await postScores();
+        await init();
+    }}
 
     async function playGame(){
-        const pokemonID = Math.floor(Math.random() * 898) + 1;
-        const httpResponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonID}`);
-        const body = await httpResponse.json()
-        const types = body.types;
-        pokeImage.src = body.sprites.front_shiny;
+        
     }
 
     //POST -> RESET SCORES
@@ -119,8 +177,9 @@
         .then(response => response.text())
         .then(result => console.log(result))
         .catch(error => console.log('error', error));
+        getScores();
     }
-
-    getScores();
+    
+    init();
 </script>
 </html>
